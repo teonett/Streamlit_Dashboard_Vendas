@@ -17,7 +17,7 @@
 # | pip install pandas                                      | #
 # | pip install plotly                                      | #
 # +=========================================================+ # 
-# | Libraries Extras To Solve Encoding Issues               | #                              | #
+# | Libraries Extras To Solve Encoding Issues               | #
 # +=========================================================+ # 
 # | pip install chardet                                     | #
 # | conda install -c conda-forge charset-normalizer         | #
@@ -29,8 +29,18 @@ import requests
 import pandas as pd
 import plotly.express as px
 
+###############################################################
+# +=========================================================+ #
+# | Setup os Page Layout to Wide                            | #
+# +=========================================================+ #
+###############################################################
 st.set_page_config(layout = 'wide')
 
+###############################################################
+# +=========================================================+ #
+# | Function to format Values                               | #
+# +=========================================================+ #
+###############################################################
 def formata_numero (valor, prefixo = ''):
     for unidade in ['', 'mil']:
         if valor < 1000:
@@ -45,26 +55,42 @@ response = requests.get(url)
 dados = pd.DataFrame.from_dict(response.json())
 dados['Data da Compra'] = pd.to_datetime(dados['Data da Compra'], format = '%d/%m/%Y')
 
-## Renomeando o Nome das Colunas
+###############################################################
+# +=========================================================+ #
+# | Rename Some Columns For a Short Name                    | #
+# +=========================================================+ #
+###############################################################
 dados.rename(columns = {
     'Categoria do Produto' : 'Categoria',
-    'Local da compra' : 'Estado'
+    'Local da compra' : 'Estado',
+    'Avaliação da compra' : 'Avaliação',
+    'Quantidade de parcelas': 'Parcelas',    
 }, inplace = True)
 
-## Tabelas
+###############################################################
+# +=========================================================+ #
+# | Tables Data Content                                     | #
+# +=========================================================+ #
+###############################################################
 receita_por_estado = dados.groupby('Estado')[['Preço']].sum()
 receita_por_estado = dados.drop_duplicates(subset='Estado')[['Estado', 
-                                                                   'lat', 
-                                                                   'lon']].merge(receita_por_estado, 
-                                                                                 left_on= 'Estado', 
-                                                                                 right_index=True).sort_values('Preço', 
+                                                             'lat', 
+                                                             'lon']].merge(receita_por_estado, 
+                                                                           left_on= 'Estado', 
+                                                                           right_index=True).sort_values('Preço', 
                                                                                                                ascending=False)
 
 receita_mensal = dados.set_index('Data da Compra').groupby(pd.Grouper(freq='M'))['Preço'].sum().reset_index()
 receita_mensal['Ano'] =  receita_mensal['Data da Compra'].dt.year
 receita_mensal['Mes'] =  receita_mensal['Data da Compra'].dt.month_name()
 
-## Graficos
+receita_categorias = dados.groupby('Categoria')[['Preço']].sum().sort_values('Preço', ascending=False)
+
+###############################################################
+# +=========================================================+ #
+# | Charts Using Geo Location and Line Model                | #
+# +=========================================================+ #
+###############################################################
 mapa_local_receita = px.scatter_geo(receita_por_estado,
                                     lat = 'lat',
                                     lon = 'lon',
@@ -86,13 +112,36 @@ mapa_local_receita_mensal = px.line(receita_mensal,
 
 mapa_local_receita.update_layout(yaxis_title = 'Receita')
 
+graph_estados = px.bar(receita_por_estado.head(),
+                          x = 'Estado',
+                          y = 'Preço',
+                          text_auto = True,
+                          title = 'Estados Com Maior Receita')
+
+graph_estados.update_layout(yaxis_title = 'Receita')
+
+graph_categorias = px.bar(receita_categorias,
+                          text_auto = True,
+                          title = 'Receita Por Categoria')
+
+graph_categorias.update_layout(yaxis_title = 'Receita')
+
+###############################################################
+# +=========================================================+ #
+# | View in Header Amount of Quantity, Revenue and Charts   | #
+# | Parameter st.columns([1,2] where the number represent   | #
+# | of size of ocupate in teh screen                        | #
+# +=========================================================+ #
+###############################################################
 ## Visualizacao no Streamlit os parametros [1,2] indica que a 2a é 2 vezes maior que o 1o
 colunaReceita, colunaQuantidade = st.columns([1,2])
 with colunaReceita:
     st.metric('Receita', formata_numero(dados['Preço'].sum(), 'R$'))
     st.plotly_chart(mapa_local_receita, use_container_width = True)
+    st.plotly_chart(graph_estados, use_container_width = True)
 with colunaQuantidade:   
     st.metric('Quantidade de Venda', formata_numero(dados.shape[0]))
     st.plotly_chart(mapa_local_receita_mensal, use_container_width = True)
+    st.plotly_chart(graph_categorias, use_container_width = True)
 
 st.dataframe(dados)
