@@ -2,6 +2,8 @@
 
 Sample projetct using streamlit library create a dashboard consuming a Api
 
+<img src="[https://github.com/teonett/Angular-Fake-Rest-Api/blob/master/img/fakeserver-start.png](https://github.com/teonett/Streamlit_Dashboard_Vendas/blob/main/Dashboard.gif)">
+
 <h4>Copyright (C) 2020 Jose Teotonio (teonett@gmail.com)</h4>
 <p>
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by
